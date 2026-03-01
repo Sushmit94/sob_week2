@@ -1,0 +1,17 @@
+{
+  "name": "coin-smith",
+  "version": "1.0.0",
+  "description": "PSBT Transaction Builder",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest --verbose"
+  },
+  "dependencies": {
+    "bitcoinjs-lib": "^6.1.7",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

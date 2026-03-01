@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Smith — PSBT Transaction Builder</title>
+  <meta name="description" content="A Bitcoin PSBT transaction builder with visualization, coin selection, and fee analysis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="18" stroke="url(#grad)" stroke-width="2.5" fill="none"/>
+            <text x="20" y="26" text-anchor="middle" fill="url(#grad)" font-size="18" font-weight="700" font-family="Inter">₿</text>
+            <defs><linearGradient id="grad" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#f7931a"/><stop offset="1" stop-color="#ffcb6b"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div>
+          <h1>Coin Smith</h1>
+          <p class="header-sub">PSBT Transaction Builder</p>
+        </div>
+      </div>
+      <div class="header-status" id="statusBadge">
+        <span class="status-dot"></span>
+        <span>Ready</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Input Panel -->
+      <section class="panel input-panel" id="inputPanel">
+        <div class="panel-header">
+          <h2>📋 Load Fixture</h2>
+          <div class="panel-actions">
+            <label class="btn btn-outline btn-sm" for="fileInput">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3a2 2 0 0 1 2-2h6.586A2 2 0 0 1 13 2.414L13.586 3A2 2 0 0 1 14 4.414V13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z"/></svg>
+              Upload
+            </label>
+            <input type="file" id="fileInput" accept=".json" hidden>
+            <button class="btn btn-outline btn-sm" id="loadSampleBtn">Sample</button>
+          </div>
+        </div>
+        <textarea id="fixtureInput" class="code-input" placeholder='Paste fixture JSON here or upload a file...' spellcheck="false"></textarea>
+        <button class="btn btn-primary btn-build" id="buildBtn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm3.7 9.7l-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 12.58l3.3-3.3a1 1 0 0 1 1.4 1.42z"/></svg>
+          Build PSBT
+        </button>
+      </section>
+
+      <!-- Results Panel -->
+      <section class="panel results-panel" id="resultsPanel" style="display:none;">
+        <!-- Warnings -->
+        <div id="warningContainer" class="warnings-container"></div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+          <div class="card stat-card" id="cardFee">
+            <div class="stat-icon">⛽</div>
+            <div class="stat-label">Fee</div>
+            <div class="stat-value" id="feeSats">—</div>
+            <div class="stat-sub" id="feeRate">—</div>
+          </div>
+          <div class="card stat-card" id="cardVbytes">
+            <div class="stat-icon">📐</div>
+            <div class="stat-label">Size</div>
+            <div class="stat-value" id="vbytes">—</div>
+            <div class="stat-sub">virtual bytes</div>
+          </div>
+          <div class="card stat-card" id="cardRbf">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-label">RBF</div>
+            <div class="stat-value" id="rbfStatus">—</div>
+            <div class="stat-sub" id="rbfDetail">—</div>
+          </div>
+          <div class="card stat-card" id="cardLocktime">
+            <div class="stat-icon">🔒</div>
+            <div class="stat-label">Locktime</div>
+            <div class="stat-value" id="locktimeValue">—</div>
+            <div class="stat-sub" id="locktimeType">—</div>
+          </div>
+        </div>
+
+        <!-- Transaction Flow -->
+        <div class="flow-section">
+          <h3 class="section-title">Transaction Flow</h3>
+          <div class="flow-container">
+            <div class="flow-col">
+              <h4 class="flow-heading">
+                <span class="flow-badge input-badge">INPUTS</span>
+                <span id="inputCount">0</span>
+              </h4>
+              <div id="inputsList" class="flow-list"></div>
+              <div class="flow-total">
+                <span>Total</span>
+                <span id="inputsTotal" class="mono">—</span>
+              </div>
+            </div>
+            <div class="flow-arrow">
+              <svg width="40" height="40" viewBox="0 0 40 40"><path d="M10 20h20M20 10l10 10-10 10" stroke="var(--accent)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="flow-col">
+              <h4 class="flow-heading">
+                <span class="flow-badge output-badge">OUTPUTS</span>
+                <span id="outputCount">0</span>
+              </h4>
+              <div id="outputsList" class="flow-list"></div>
+              <div class="flow-total">
+                <span>Total</span>
+                <span id="outputsTotal" class="mono">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PSBT -->
+        <div class="psbt-section">
+          <h3 class="section-title">PSBT (Base64)</h3>
+          <div class="psbt-box">
+            <code id="psbtOutput" class="psbt-code"></code>
+            <button class="btn btn-sm btn-copy" id="copyPsbtBtn" title="Copy to clipboard">📋 Copy</button>
+          </div>
+        </div>
+
+        <!-- Full Report -->
+        <details class="report-details">
+          <summary class="section-title clickable">📄 Full JSON Report</summary>
+          <pre id="jsonReport" class="json-block"></pre>
+        </details>
+      </section>
+
+      <!-- Error Panel -->
+      <section class="panel error-panel" id="errorPanel" style="display:none;">
+        <div class="error-content">
+          <div class="error-icon">⚠️</div>
+          <h3 id="errorCode">Error</h3>
+          <p id="errorMessage"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Coin Smith v1.0 — PSBT Builder</span>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
