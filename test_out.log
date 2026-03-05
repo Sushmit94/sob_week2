@@ -1,0 +1,67 @@
+PASS tests/builder.test.js
+  Fixture Validation
+    √ rejects null fixture (3 ms)
+    √ rejects fixture with missing utxos
+    √ rejects fixture with empty payments (1 ms)
+    √ rejects negative fee rate (1 ms)
+  Coin Selection
+    √ basic p2wpkh change scenario (5 ms)
+    √ send-all when change is dust (1 ms)
+    √ multi-input required (5 ms)
+    √ multi-payment with change (2 ms)
+    √ policy max_inputs enforced (1 ms)
+    √ insufficient funds throws error
+  Fee and Change
+    √ fee meets target rate (1 ms)
+    √ fee_rate_sat_vb accuracy within ±0.01 (1 ms)
+    √ no dust outputs (1 ms)
+  vBytes Estimation
+    √ p2pkh input is larger than p2wpkh
+    √ p2tr input is smallest segwit
+    √ mixed input types produces valid transaction (1 ms)
+  RBF and Locktime
+    √ rbf:true sets rbf_signaling (1 ms)
+    √ rbf:false explicit does NOT set rbf_signaling (1 ms)
+    √ locktime without rbf sets nLockTime and rbf_signaling false (1 ms)
+    √ anti-fee-sniping: rbf+current_height sets locktime (2 ms)
+    √ locktime boundary: 499999999 = block_height (1 ms)
+    √ locktime boundary: 500000000 = unix_timestamp (1 ms)
+    √ classifyLocktime utility (1 ms)
+  Warnings
+    √ SEND_ALL when no change (1 ms)
+    √ RBF_SIGNALING when rbf is true (1 ms)
+  PSBT
+    √ psbt_base64 decodes with valid magic bytes (1 ms)
+    √ PSBT is non-empty base64 (1 ms)
+  Coin Selection Strategies
+    √ random strategy produces valid result (1 ms)
+    √ bnb strategy produces valid result (1 ms)
+    √ compare mode returns strategy_comparison array (1 ms)
+    √ compare mode results are sorted by waste_score (1 ms)
+    √ default strategy is greedy when not specified (2 ms)
+    √ selectCoinsRandom direct call works
+    √ selectCoinsBnB direct call works
+  PSBT Signing with Test Keys
+    √ test_keys:true produces sign result fields (6 ms)
+    √ test_keys not set does NOT produce sign fields (1 ms)
+    √ signing handles graceful failure (3 ms)
+  Watch-Only Descriptors
+    √ descriptors field is present in report (1 ms)
+    √ each descriptor has required fields (1 ms)
+    √ descriptors include inputs and outputs (1 ms)
+    √ descriptors deduplicate by script hex (1 ms)
+    √ descriptor uses addr() when address is available (1 ms)
+  Privacy Meter
+    √ privacy field is present in report (4 ms)
+    √ privacy score is between 0 and 100 (1 ms)
+    √ basic single-input same-type tx has high privacy score (1 ms)
+    √ round payment amounts are flagged (1 ms)
+    √ input reuse is detected
+    √ change type mismatch is detected
+    √ many inputs penalty applied
+
+Test Suites: 1 passed, 1 total
+Tests:       49 passed, 49 total
+Snapshots:   0 total
+Time:        1.005 s
+Ran all test suites.

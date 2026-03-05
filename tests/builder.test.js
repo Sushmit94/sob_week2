@@ -9,7 +9,13 @@ const {
     classifyLocktime,
     estimateVbytes,
     selectCoins,
+    selectCoinsRandom,
+    selectCoinsBnB,
+    compareStrategies,
     guessScriptType,
+    generateDescriptors,
+    analyzePrivacy,
+    signAndFinalize,
     INPUT_VBYTES,
     OUTPUT_VBYTES,
     DUST_THRESHOLD,
@@ -237,5 +243,249 @@ describe('PSBT', () => {
         const result = buildTransaction(loadFixture('multi_payment_change.json'));
         expect(result.psbt_base64).toBeTruthy();
         expect(result.psbt_base64.length).toBeGreaterThan(10);
+    });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STRETCH GOAL TESTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ─── Coin Selection Strategies ──────────────────────────────────────────────
+
+describe('Coin Selection Strategies', () => {
+    test('random strategy produces valid result', () => {
+        const fixture = loadFixture('basic_change_p2wpkh.json');
+        fixture.strategy = 'random';
+        const result = buildTransaction(fixture);
+        expect(result.ok).toBe(true);
+        expect(result.strategy).toBe('random');
+        expect(result.selected_inputs.length).toBeGreaterThan(0);
+        // Balance check
+        const inSum = result.selected_inputs.reduce((s, i) => s + i.value_sats, 0);
+        const outSum = result.outputs.reduce((s, o) => s + o.value_sats, 0);
+        expect(inSum).toBe(outSum + result.fee_sats);
+    });
+
+    test('bnb strategy produces valid result', () => {
+        const fixture = loadFixture('basic_change_p2wpkh.json');
+        fixture.strategy = 'bnb';
+        const result = buildTransaction(fixture);
+        expect(result.ok).toBe(true);
+        expect(result.strategy).toBe('bnb');
+        expect(result.selected_inputs.length).toBeGreaterThan(0);
+    });
+
+    test('compare mode returns strategy_comparison array', () => {
+        const fixture = loadFixture('basic_change_p2wpkh.json');
+        fixture.strategy = 'compare';
+        const result = buildTransaction(fixture);
+        expect(result.ok).toBe(true);
+        expect(result.strategy_comparison).toBeDefined();
+        expect(Array.isArray(result.strategy_comparison)).toBe(true);
+        expect(result.strategy_comparison.length).toBe(3);
+
+        // Each entry has required fields
+        result.strategy_comparison.forEach(entry => {
+            expect(entry.strategy).toBeDefined();
+            if (!entry.error) {
+                expect(entry.input_count).toBeGreaterThan(0);
+                expect(entry.fee_sats).toBeGreaterThan(0);
+                expect(entry.vbytes).toBeGreaterThan(0);
+                expect(typeof entry.has_change).toBe('boolean');
+                expect(entry.waste_score).toBeGreaterThanOrEqual(0);
+            }
+        });
+    });
+
+    test('compare mode results are sorted by waste_score', () => {
+        const fixture = loadFixture('multi_input_required.json');
+        fixture.strategy = 'compare';
+        const result = buildTransaction(fixture);
+        const scores = result.strategy_comparison
+            .filter(e => !e.error)
+            .map(e => e.waste_score);
+        for (let i = 1; i < scores.length; i++) {
+            expect(scores[i]).toBeGreaterThanOrEqual(scores[i - 1]);
+        }
+    });
+
+    test('default strategy is greedy when not specified', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        expect(result.strategy).toBe('greedy');
+        expect(result.strategy_comparison).toBeUndefined();
+    });
+
+    test('selectCoinsRandom direct call works', () => {
+        const utxos = [
+            { txid: 'a'.repeat(64), vout: 0, value_sats: 50000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' },
+            { txid: 'b'.repeat(64), vout: 0, value_sats: 60000, script_pubkey_hex: '0014' + 'bb'.repeat(20), script_type: 'p2wpkh' },
+        ];
+        const payments = [{ script_pubkey_hex: '0014' + 'cc'.repeat(20), value_sats: 30000, script_type: 'p2wpkh' }];
+        const selected = selectCoinsRandom(utxos, 30000, 1, payments, 'p2wpkh', null);
+        expect(selected.length).toBeGreaterThan(0);
+        const total = selected.reduce((s, u) => s + u.value_sats, 0);
+        expect(total).toBeGreaterThanOrEqual(30000);
+    });
+
+    test('selectCoinsBnB direct call works', () => {
+        const utxos = [
+            { txid: 'a'.repeat(64), vout: 0, value_sats: 50000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' },
+            { txid: 'b'.repeat(64), vout: 0, value_sats: 60000, script_pubkey_hex: '0014' + 'bb'.repeat(20), script_type: 'p2wpkh' },
+        ];
+        const payments = [{ script_pubkey_hex: '0014' + 'cc'.repeat(20), value_sats: 30000, script_type: 'p2wpkh' }];
+        const selected = selectCoinsBnB(utxos, 30000, 1, payments, 'p2wpkh', null);
+        expect(selected.length).toBeGreaterThan(0);
+    });
+});
+
+// ─── PSBT Signing Tests ─────────────────────────────────────────────────────
+
+describe('PSBT Signing with Test Keys', () => {
+    test('test_keys:true produces sign result fields', () => {
+        const fixture = loadFixture('basic_change_p2wpkh.json');
+        fixture.test_keys = true;
+        const result = buildTransaction(fixture);
+        expect(result.ok).toBe(true);
+        expect(result.signed_psbt_base64).toBeDefined();
+        expect(result.signed_psbt_base64.length).toBeGreaterThan(0);
+        // tx_hex may be null if keys don't match (test keys won't match real scripts)
+        // but signed_psbt_base64 should be present
+    });
+
+    test('test_keys not set does NOT produce sign fields', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        expect(result.signed_psbt_base64).toBeUndefined();
+        expect(result.tx_hex).toBeUndefined();
+    });
+
+    test('signing handles graceful failure', () => {
+        const fixture = loadFixture('mixed_input_types.json');
+        fixture.test_keys = true;
+        const result = buildTransaction(fixture);
+        expect(result.ok).toBe(true);
+        expect(result.signed_psbt_base64).toBeDefined();
+        // sign_error may or may not be present; either way should not crash
+    });
+});
+
+// ─── Watch-Only Descriptor Tests ────────────────────────────────────────────
+
+describe('Watch-Only Descriptors', () => {
+    test('descriptors field is present in report', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        expect(result.descriptors).toBeDefined();
+        expect(Array.isArray(result.descriptors)).toBe(true);
+        expect(result.descriptors.length).toBeGreaterThan(0);
+    });
+
+    test('each descriptor has required fields', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        result.descriptors.forEach(d => {
+            expect(d.role).toBeDefined();
+            expect(['input', 'payment', 'change']).toContain(d.role);
+            expect(d.script_type).toBeDefined();
+            expect(d.script_hex).toBeDefined();
+            expect(d.descriptor).toBeDefined();
+            expect(d.descriptor).toMatch(/^(addr|raw)\(/);
+        });
+    });
+
+    test('descriptors include inputs and outputs', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        const roles = result.descriptors.map(d => d.role);
+        expect(roles).toContain('input');
+        // Should have at least payment or change
+        expect(roles.some(r => r === 'payment' || r === 'change')).toBe(true);
+    });
+
+    test('descriptors deduplicate by script hex', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        const hexes = result.descriptors.map(d => d.script_hex);
+        const unique = new Set(hexes);
+        expect(hexes.length).toBe(unique.size);
+    });
+
+    test('descriptor uses addr() when address is available', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        const withAddr = result.descriptors.filter(d => d.descriptor.startsWith('addr('));
+        // basic_change_p2wpkh has addresses, so we expect addr() format
+        expect(withAddr.length).toBeGreaterThan(0);
+    });
+});
+
+// ─── Privacy Meter Tests ────────────────────────────────────────────────────
+
+describe('Privacy Meter', () => {
+    test('privacy field is present in report', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        expect(result.privacy).toBeDefined();
+        expect(result.privacy.score).toBeDefined();
+        expect(result.privacy.max_score).toBe(100);
+        expect(Array.isArray(result.privacy.risk_factors)).toBe(true);
+    });
+
+    test('privacy score is between 0 and 100', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        expect(result.privacy.score).toBeGreaterThanOrEqual(0);
+        expect(result.privacy.score).toBeLessThanOrEqual(100);
+    });
+
+    test('basic single-input same-type tx has high privacy score', () => {
+        const result = buildTransaction(loadFixture('basic_change_p2wpkh.json'));
+        // Single input, same type for change and payment = good privacy
+        expect(result.privacy.score).toBeGreaterThanOrEqual(70);
+    });
+
+    test('round payment amounts are flagged', () => {
+        const fixture = {
+            network: 'mainnet',
+            utxos: [{ txid: 'a'.repeat(64), vout: 0, value_sats: 200000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' }],
+            payments: [{ script_pubkey_hex: '0014' + 'cc'.repeat(20), value_sats: 100000, script_type: 'p2wpkh' }],
+            change: { script_pubkey_hex: '0014' + 'bb'.repeat(20), script_type: 'p2wpkh' },
+            fee_rate_sat_vb: 1,
+        };
+        const result = buildTransaction(fixture);
+        expect(result.privacy.risk_factors.some(f => f.code === 'ROUND_PAYMENT')).toBe(true);
+    });
+
+    test('input reuse is detected', () => {
+        // Two inputs with the same scriptPubKey
+        const inputs = [
+            { txid: 'a'.repeat(64), vout: 0, value_sats: 50000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' },
+            { txid: 'b'.repeat(64), vout: 1, value_sats: 50000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' },
+        ];
+        const outputs = [
+            { n: 0, value_sats: 70000, script_pubkey_hex: '0014' + 'cc'.repeat(20), script_type: 'p2wpkh', is_change: false },
+        ];
+        const privacy = analyzePrivacy(inputs, outputs, null);
+        expect(privacy.risk_factors.some(f => f.code === 'INPUT_REUSE')).toBe(true);
+        expect(privacy.score).toBeLessThan(100);
+    });
+
+    test('change type mismatch is detected', () => {
+        const inputs = [
+            { txid: 'a'.repeat(64), vout: 0, value_sats: 100000, script_pubkey_hex: '0014' + 'aa'.repeat(20), script_type: 'p2wpkh' },
+        ];
+        const outputs = [
+            { n: 0, value_sats: 70000, script_pubkey_hex: '0014' + 'cc'.repeat(20), script_type: 'p2wpkh', is_change: false },
+            { n: 1, value_sats: 29000, script_pubkey_hex: '5120' + 'dd'.repeat(32), script_type: 'p2tr', is_change: true },
+        ];
+        const privacy = analyzePrivacy(inputs, outputs, 1);
+        expect(privacy.risk_factors.some(f => f.code === 'CHANGE_TYPE_MISMATCH')).toBe(true);
+    });
+
+    test('many inputs penalty applied', () => {
+        const inputs = [];
+        for (let i = 0; i < 5; i++) {
+            inputs.push({
+                txid: (i.toString(16)).repeat(64).slice(0, 64), vout: 0, value_sats: 10000,
+                script_pubkey_hex: '0014' + (i.toString(16) + 'a').repeat(20).slice(0, 40), script_type: 'p2wpkh',
+            });
+        }
+        const outputs = [
+            { n: 0, value_sats: 40001, script_pubkey_hex: '0014' + 'cc'.repeat(20), script_type: 'p2wpkh', is_change: false },
+        ];
+        const privacy = analyzePrivacy(inputs, outputs, null);
+        expect(privacy.risk_factors.some(f => f.code === 'MANY_INPUTS')).toBe(true);
     });
 });

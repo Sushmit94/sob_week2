@@ -9,6 +9,7 @@ const resultsPanel = document.getElementById('resultsPanel');
 const errorPanel = document.getElementById('errorPanel');
 const statusBadge = document.getElementById('statusBadge');
 const copyPsbtBtn = document.getElementById('copyPsbtBtn');
+const copyTxHexBtn = document.getElementById('copyTxHexBtn');
 
 // ─── Sample fixture ─────────────────────────────────────────────────────────
 const SAMPLE_FIXTURE = {
@@ -56,6 +57,14 @@ copyPsbtBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(text).then(() => {
         copyPsbtBtn.textContent = '✅ Copied!';
         setTimeout(() => { copyPsbtBtn.textContent = '📋 Copy'; }, 1500);
+    });
+});
+
+copyTxHexBtn.addEventListener('click', () => {
+    const text = document.getElementById('txHexOutput').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        copyTxHexBtn.textContent = '✅ Copied!';
+        setTimeout(() => { copyTxHexBtn.textContent = '📋 Copy'; }, 1500);
     });
 });
 
@@ -166,9 +175,138 @@ function showResults(data) {
     // PSBT
     document.getElementById('psbtOutput').textContent = data.psbt_base64;
 
+    // ─── Stretch Goal Sections ──────────────────────────────────────────────
+
+    // Strategy Comparison
+    renderStrategyComparison(data);
+
+    // Privacy Meter
+    renderPrivacyMeter(data);
+
+    // Descriptors
+    renderDescriptors(data);
+
+    // Signed Tx
+    renderSignedTx(data);
+
     // Full Report
     document.getElementById('jsonReport').textContent = JSON.stringify(data, null, 2);
 }
+
+// ─── Strategy Comparison ────────────────────────────────────────────────────
+function renderStrategyComparison(data) {
+    const section = document.getElementById('strategySection');
+    const tbody = document.getElementById('strategyBody');
+    tbody.innerHTML = '';
+
+    if (!data.strategy_comparison || !data.strategy_comparison.length) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+
+    data.strategy_comparison.forEach((entry, idx) => {
+        const tr = document.createElement('tr');
+        if (idx === 0) tr.className = 'best-strategy';
+        if (entry.error) {
+            tr.innerHTML = `<td><strong>${entry.strategy}</strong></td><td colspan="5" class="error-cell">⚠️ ${entry.error}</td>`;
+        } else {
+            tr.innerHTML = `
+                <td><strong>${entry.strategy}</strong>${idx === 0 ? ' 🏆' : ''}</td>
+                <td>${entry.input_count}</td>
+                <td>${entry.fee_sats.toLocaleString()}</td>
+                <td>${entry.vbytes}</td>
+                <td>${entry.has_change ? '✅' : '❌'}</td>
+                <td>${entry.waste_score.toLocaleString()}</td>
+            `;
+        }
+        tbody.appendChild(tr);
+    });
+}
+
+// ─── Privacy Meter ──────────────────────────────────────────────────────────
+function renderPrivacyMeter(data) {
+    const section = document.getElementById('privacySection');
+    if (!data.privacy) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+
+    const score = data.privacy.score;
+    const arc = document.getElementById('privacyArc');
+    const text = document.getElementById('privacyScoreText');
+    const list = document.getElementById('riskFactorsList');
+
+    // Animate arc
+    const circumference = 314; // 2 * π * 50
+    const offset = circumference - (score / 100) * circumference;
+    arc.style.transition = 'stroke-dashoffset 1s ease-out, stroke 0.5s';
+    arc.style.strokeDashoffset = offset;
+
+    // Color based on score
+    const color = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+    arc.style.stroke = color;
+    text.textContent = score;
+    text.setAttribute('fill', color);
+
+    // Risk factors
+    list.innerHTML = '';
+    if (data.privacy.risk_factors.length === 0) {
+        list.innerHTML = '<div class="risk-item risk-good">✅ No privacy risks detected</div>';
+    } else {
+        data.privacy.risk_factors.forEach(f => {
+            const div = document.createElement('div');
+            div.className = 'risk-item';
+            div.innerHTML = `<span class="risk-code">${f.code}</span> <span class="risk-desc">${f.description}</span> <span class="risk-penalty">-${f.penalty}</span>`;
+            list.appendChild(div);
+        });
+    }
+}
+
+// ─── Descriptors ────────────────────────────────────────────────────────────
+function renderDescriptors(data) {
+    const section = document.getElementById('descriptorsSection');
+    const list = document.getElementById('descriptorsList');
+    list.innerHTML = '';
+
+    if (!data.descriptors || !data.descriptors.length) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+
+    data.descriptors.forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'descriptor-item';
+        div.innerHTML = `
+            <span class="descriptor-role">${d.role}</span>
+            <span class="script-badge">${d.script_type}</span>
+            <code class="descriptor-value">${d.descriptor}</code>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// ─── Signed Tx ──────────────────────────────────────────────────────────────
+function renderSignedTx(data) {
+    const section = document.getElementById('signedTxSection');
+    const errorBox = document.getElementById('signErrorBox');
+
+    if (!data.signed_psbt_base64) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+
+    if (data.sign_error) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = `⚠️ ${data.sign_error}`;
+    } else {
+        errorBox.style.display = 'none';
+    }
+
+    document.getElementById('txHexOutput').textContent = data.tx_hex || data.signed_psbt_base64;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function showError(code, message) {
     resultsPanel.style.display = 'none';
@@ -206,3 +344,4 @@ function createFlowItem({ value, label, scriptType, isChange }) {
   `;
     return div;
 }
+

@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Coin Smith — PSBT Transaction Builder</title>
-  <meta name="description" content="A Bitcoin PSBT transaction builder with visualization, coin selection, and fee analysis.">
+  <meta name="description"
+    content="A Bitcoin PSBT transaction builder with visualization, coin selection, and fee analysis.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="app">
     <!-- Header -->
@@ -17,9 +22,15 @@
       <div class="header-brand">
         <div class="logo">
           <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="18" stroke="url(#grad)" stroke-width="2.5" fill="none"/>
-            <text x="20" y="26" text-anchor="middle" fill="url(#grad)" font-size="18" font-weight="700" font-family="Inter">₿</text>
-            <defs><linearGradient id="grad" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#f7931a"/><stop offset="1" stop-color="#ffcb6b"/></linearGradient></defs>
+            <circle cx="20" cy="20" r="18" stroke="url(#grad)" stroke-width="2.5" fill="none" />
+            <text x="20" y="26" text-anchor="middle" fill="url(#grad)" font-size="18" font-weight="700"
+              font-family="Inter">₿</text>
+            <defs>
+              <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40">
+                <stop stop-color="#f7931a" />
+                <stop offset="1" stop-color="#ffcb6b" />
+              </linearGradient>
+            </defs>
           </svg>
         </div>
         <div>
@@ -41,16 +52,23 @@
           <h2>📋 Load Fixture</h2>
           <div class="panel-actions">
             <label class="btn btn-outline btn-sm" for="fileInput">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3a2 2 0 0 1 2-2h6.586A2 2 0 0 1 13 2.414L13.586 3A2 2 0 0 1 14 4.414V13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z"/></svg>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M3 3a2 2 0 0 1 2-2h6.586A2 2 0 0 1 13 2.414L13.586 3A2 2 0 0 1 14 4.414V13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3z" />
+              </svg>
               Upload
             </label>
             <input type="file" id="fileInput" accept=".json" hidden>
             <button class="btn btn-outline btn-sm" id="loadSampleBtn">Sample</button>
           </div>
         </div>
-        <textarea id="fixtureInput" class="code-input" placeholder='Paste fixture JSON here or upload a file...' spellcheck="false"></textarea>
+        <textarea id="fixtureInput" class="code-input" placeholder='Paste fixture JSON here or upload a file...'
+          spellcheck="false"></textarea>
         <button class="btn btn-primary btn-build" id="buildBtn">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm3.7 9.7l-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 12.58l3.3-3.3a1 1 0 0 1 1.4 1.42z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              d="M10 1a9 9 0 1 0 0 18A9 9 0 0 0 10 1zm3.7 9.7l-4 4a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L9 12.58l3.3-3.3a1 1 0 0 1 1.4 1.42z" />
+          </svg>
           Build PSBT
         </button>
       </section>
@@ -104,7 +122,10 @@
               </div>
             </div>
             <div class="flow-arrow">
-              <svg width="40" height="40" viewBox="0 0 40 40"><path d="M10 20h20M20 10l10 10-10 10" stroke="var(--accent)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <path d="M10 20h20M20 10l10 10-10 10" stroke="var(--accent)" stroke-width="2.5" fill="none"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
             </div>
             <div class="flow-col">
               <h4 class="flow-heading">
@@ -126,6 +147,61 @@
           <div class="psbt-box">
             <code id="psbtOutput" class="psbt-code"></code>
             <button class="btn btn-sm btn-copy" id="copyPsbtBtn" title="Copy to clipboard">📋 Copy</button>
+          </div>
+        </div>
+
+        <!-- Strategy Comparison -->
+        <div class="strategy-section" id="strategySection" style="display:none;">
+          <h3 class="section-title">📊 Strategy Comparison</h3>
+          <div class="table-wrap">
+            <table class="strategy-table" id="strategyTable">
+              <thead>
+                <tr>
+                  <th>Strategy</th>
+                  <th>Inputs</th>
+                  <th>Fee (sats)</th>
+                  <th>vBytes</th>
+                  <th>Change?</th>
+                  <th>Waste</th>
+                </tr>
+              </thead>
+              <tbody id="strategyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Privacy Meter -->
+        <div class="privacy-section" id="privacySection" style="display:none;">
+          <h3 class="section-title">🛡️ Privacy Meter</h3>
+          <div class="privacy-content">
+            <div class="privacy-gauge">
+              <svg viewBox="0 0 120 120" class="gauge-svg">
+                <circle cx="60" cy="60" r="50" stroke="var(--border)" stroke-width="10" fill="none" opacity="0.3" />
+                <circle cx="60" cy="60" r="50" stroke="var(--accent)" stroke-width="10" fill="none"
+                  stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round" id="privacyArc"
+                  class="privacy-arc" />
+                <text x="60" y="58" text-anchor="middle" fill="var(--text)" font-size="28" font-weight="700"
+                  id="privacyScoreText">—</text>
+                <text x="60" y="76" text-anchor="middle" fill="var(--text-secondary)" font-size="11">/100</text>
+              </svg>
+            </div>
+            <div class="risk-factors" id="riskFactorsList"></div>
+          </div>
+        </div>
+
+        <!-- Watch-Only Descriptors -->
+        <details class="descriptors-section" id="descriptorsSection" style="display:none;">
+          <summary class="section-title clickable">🔑 Watch-Only Descriptors</summary>
+          <div id="descriptorsList" class="descriptors-list"></div>
+        </details>
+
+        <!-- Signed Tx Hex -->
+        <div class="signed-tx-section" id="signedTxSection" style="display:none;">
+          <h3 class="section-title">✍️ Signed Transaction</h3>
+          <div id="signErrorBox" class="sign-error" style="display:none;"></div>
+          <div class="psbt-box">
+            <code id="txHexOutput" class="psbt-code"></code>
+            <button class="btn btn-sm btn-copy" id="copyTxHexBtn" title="Copy to clipboard">📋 Copy</button>
           </div>
         </div>
 
@@ -152,4 +228,5 @@
   </div>
   <script src="app.js"></script>
 </body>
+
 </html>

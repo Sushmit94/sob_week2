@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "bitcoinjs-lib": "^6.1.7",
-    "express": "^4.21.0"
+    "ecpair": "^3.0.1",
+    "express": "^4.21.0",
+    "tiny-secp256k1": "^2.2.4"
   },
   "devDependencies": {
     "jest": "^29.7.0"

@@ -1,0 +1,2 @@
+Error: jq is required but not found. Install it with: brew install jq
+\n---STDERR---\n
