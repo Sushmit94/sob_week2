@@ -15,7 +15,7 @@ This challenge is deliberately **generic**. The public fixtures are not exhausti
 
 ## Problem statement
 
-Given a fixture (UTXO set, one or more payment outputs, a change template, and a fee rate target), produce:
+Given a fixture (UTXO set, one or more payment outputs, a change template, and a fee rate target), output should contain:
 
 1) a selected input set,
 2) a valid PSBT containing an unsigned transaction and required prevout info,
